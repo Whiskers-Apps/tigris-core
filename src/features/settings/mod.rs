@@ -6,6 +6,12 @@ use super::paths::get_settings_path;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
+    #[serde(default = "default_width")]
+    pub width: u32,
+
+    #[serde(default = "default_height")]
+    pub height: u32,
+
     #[serde(default = "default_true")]
     pub show_recent_apps: bool,
 
@@ -82,6 +88,14 @@ pub struct SearchEngine {
 // ===============================================================
 // ===== Defaults
 // ===============================================================
+
+fn default_height() -> u32 {
+    660
+}
+
+fn default_width() -> u32 {
+    900
+}
 
 fn default_true() -> bool {
     true
@@ -170,6 +184,8 @@ fn default_blacklist() -> Vec<String> {
 
 fn get_default_settings() -> Settings {
     Settings {
+        width: default_width(),
+        height: default_height(),
         show_recent_apps: true,
         box_border_radius: default_box_border_radius(),
         border_width: default_border_width(),
