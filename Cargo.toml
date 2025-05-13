@@ -1,6 +1,6 @@
 [package]
-name = "tigris-rs"
-version = "0.1.0"
+name = "tigris-core"
+version = "1.0.0"
 edition = "2021"
 license = "MIT"
 
@@ -8,13 +8,10 @@ license = "MIT"
 dirs = { version = "6.0.0" }
 serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.137"
-bincode = "1.3.3"
-tux-icons = { version = "0.4.2", optional = true }
-freedesktop-desktop-entry = { version = "0.5.0", optional = true }
 walkdir = { version = "2.5.0" }
 notify-rust = "4.11.4"
+postcard = { version = "1.1.1", features = ["alloc"] }
 
 [features]
 default = []
-launcher = ["dep:freedesktop-desktop-entry", "dep:tux-icons"]
 extension = []

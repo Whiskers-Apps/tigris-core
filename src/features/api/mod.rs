@@ -1,13 +1,12 @@
-use std::{
-    fs::{self, OpenOptions},
-    io::Write,
-    path::PathBuf,
-};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use super::paths::get_api_path;
-use super::search_results::SearchResult;
+#[cfg(feature = "extension")]
+use {
+    super::search_results::SearchResult, postcard::from_bytes, postcard::to_allocvec,
+    std::error::Error, std::io::Read, std::io::Write,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FormResultsRequest {
@@ -22,9 +21,6 @@ pub struct FormResult {
     pub value: String,
     pub args: Vec<String>,
 }
-
-#[cfg(feature = "launcher")]
-use super::actions::OpenFormAction;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExtensionRequest {
@@ -106,58 +102,6 @@ impl RunActionRequest {
     }
 }
 
-fn write_to_api(bytes: &Vec<u8>) {
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(get_api_path())
-        .expect("Error getting API file");
-
-    file.write_all(&bytes).expect("Error writing to API file");
-    file.flush().expect("Error closing API file");
-}
-
-fn get_api_bytes() -> Vec<u8> {
-    fs::read(get_api_path()).expect("Error reading API file")
-}
-
-pub fn write_extension_request(request: &ExtensionRequest) {
-    let bytes = bincode::serialize(request).expect("Error serializing extension request");
-    write_to_api(&bytes);
-}
-
-pub fn get_extension_request() -> ExtensionRequest {
-    let bytes = get_api_bytes();
-    return bincode::deserialize::<ExtensionRequest>(&bytes)
-        .expect("Error deserializing extension request");
-}
-
-#[cfg(feature = "launcher")]
-pub fn get_extension_results() -> Vec<SearchResult> {
-    let bytes = get_api_bytes();
-    return bincode::deserialize(&bytes).expect("Error deserializing extension results");
-}
-
-#[cfg(feature = "extension")]
-pub fn send_search_results(results: &Vec<SearchResult>) {
-    let bytes = bincode::serialize(results).expect("Error serializing extension results");
-    write_to_api(&bytes);
-}
-
-#[cfg(feature = "launcher")]
-pub fn write_form(action: &OpenFormAction) {
-    let bytes = bincode::serialize(action).expect("Error serializing form");
-    write_to_api(&bytes);
-}
-
-#[cfg(feature = "launcher")]
-pub fn get_form() -> OpenFormAction {
-    let bytes = get_api_bytes();
-    let action = bincode::deserialize::<OpenFormAction>(&bytes).expect("Error reading form");
-    action
-}
-
 impl FormResultsRequest {
     pub fn get_result(&self, id: &str) -> Result<FormResult, String> {
         let result = self.results.iter().find(|r| r.id == id);
@@ -197,4 +141,30 @@ impl FormResultsRequest {
         let result = self.get_result(id)?;
         Ok(PathBuf::from(&result.value))
     }
+}
+
+// =================================================================
+// ==== API
+// =================================================================
+
+#[cfg(feature = "extension")]
+pub fn return_search_results(results: &Vec<SearchResult>) {
+    use std::process::exit;
+
+    let bytes = to_allocvec(results).expect("Error getting results as bytes");
+    std::io::stdout()
+        .write_all(&bytes)
+        .expect("Error sendind results");
+
+    exit(0)
+}
+
+#[cfg(feature = "extension")]
+pub fn get_request() -> Result<ExtensionRequest, Box<dyn Error>> {
+    let mut buffer: Vec<u8> = vec![];
+    std::io::stdin().read_to_end(&mut buffer)?;
+
+    let request: ExtensionRequest = from_bytes(&buffer)?;
+
+    Ok(request)
 }

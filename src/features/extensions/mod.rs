@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{error::Error, fs, path::PathBuf};
 
 use super::paths::get_extensions_dir;
 use serde::{Deserialize, Serialize};
@@ -92,20 +92,8 @@ fn default_conditional_show() -> Option<Vec<ConditionalShow>> {
 // ==== Methods
 // =================================================================
 
-#[cfg(feature = "launcher")]
-pub fn get_extensions() -> Vec<Extension> {
-    use super::paths::get_extensions_path;
-
-    let bytes = fs::read(get_extensions_path()).expect("Error reading extensions");
-
-    let extensions =
-        bincode::deserialize::<Vec<Extension>>(&bytes).expect("Error deserializing extensions");
-
-    extensions
-}
-
-pub fn get_extension_dir(extension_id: &str) -> Result<PathBuf, String> {
-    for entry in WalkDir::new(get_extensions_dir()) {
+pub fn get_extension_dir(extension_id: &str) -> Result<PathBuf, Box<dyn Error>> {
+    for entry in WalkDir::new(get_extensions_dir()?) {
         if let Ok(entry) = entry {
             let name = entry.file_name();
 
@@ -121,7 +109,5 @@ pub fn get_extension_dir(extension_id: &str) -> Result<PathBuf, String> {
         }
     }
 
-    Err(String::from(
-        "Could not find any extension with the given id",
-    ))
+    Err("Could not find any extension with the given id".into())
 }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +32,7 @@ pub struct CopyTextAction {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CopyImageAction {
-    pub image_path: String,
+    pub image_path: PathBuf,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -42,7 +42,7 @@ pub struct OpenLinkAction {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OpenAppAction {
-    pub path: String,
+    pub path: PathBuf,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -185,7 +185,6 @@ impl ResultAction {
         }
     }
 
-    #[cfg(feature = "launcher")]
     pub fn new_open_app_action(action: &OpenAppAction) -> Self {
         Self {
             action_type: ActionType::OpenApp,
@@ -256,9 +255,7 @@ impl CopyImageAction {
     pub fn new(image_path: &Path) -> Self {
         let image_path = image_path.to_owned();
 
-        Self {
-            image_path: image_path.into_os_string().into_string().unwrap(),
-        }
+        Self { image_path }
     }
 }
 
@@ -272,8 +269,9 @@ impl OpenLinkAction {
 
 impl OpenAppAction {
     pub fn new(path: &Path) -> Self {
-        let path_str = path.to_str().unwrap().to_owned();
-        Self { path: path_str }
+        Self {
+            path: path.to_owned(),
+        }
     }
 }
 

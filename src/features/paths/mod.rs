@@ -1,75 +1,97 @@
-use std::path::PathBuf;
+use std::{error::Error, fs, path::PathBuf};
 
 // =================================================================
 // ==== Directories
 // =================================================================
 
-pub fn get_local_dir() -> PathBuf {
-    return dirs::data_dir()
-        .expect("Error getting data directory")
+pub fn get_local_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let dir = dirs::data_dir()
+        .ok_or_else(|| "Error getting local data dir".to_string())?
         .join("org-whiskersapps-tigris");
+
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+
+    Ok(dir)
 }
 
-pub fn get_config_dir() -> PathBuf {
-    return dirs::config_dir()
-        .expect("Error getting config directory")
+pub fn get_config_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let dir = dirs::config_dir()
+        .ok_or_else(|| "Error getting config dir")?
         .join("org-whiskersapps-tigris");
+
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+
+    Ok(dir)
 }
 
 pub fn get_tmp_dir() -> PathBuf {
-    return PathBuf::from("/tmp/tigris-launcher");
+    return PathBuf::from("/tmp");
 }
 
-pub fn get_cache_dir() -> PathBuf {
-    return dirs::cache_dir()
-        .expect("Error getting cache dir")
-        .join("org-whiskersapps-tigris");
+pub fn get_assets_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let dir = get_local_dir()?.join("assets");
+
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+
+    Ok(dir)
 }
 
-pub fn get_assets_dir() -> PathBuf {
-    return get_local_dir().join("assets");
+pub fn get_icons_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let dir = get_assets_dir()?.join("icons");
+
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+
+    Ok(dir)
 }
 
-pub fn get_icons_dir() -> PathBuf {
-    return get_assets_dir().join("icons");
+pub fn get_extensions_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let dir = get_local_dir()?.join("extensions");
+
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+
+    Ok(dir)
 }
 
-pub fn get_extensions_dir() -> PathBuf {
-    return get_local_dir().join("extensions");
-}
+pub fn get_store_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let dir = get_local_dir()?.join("store");
 
-pub fn get_store_dir() -> PathBuf {
-    return get_local_dir().join("store");
+    if !dir.exists() {
+        fs::create_dir_all(&dir)?;
+    }
+
+    Ok(dir)
 }
 
 // =================================================================
 // ==== Files
 // =================================================================
 
-pub fn get_apps_path() -> PathBuf {
-    return get_cache_dir().join("apps.bin");
+pub fn get_extensions_path() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(get_local_dir()?.join("indexing").join("extensions.bin"))
 }
 
-pub fn get_extensions_path() -> PathBuf {
-    return get_cache_dir().join("extensions.bin");
+pub fn get_settings_path() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(get_config_dir()?.join("settings.bin"))
 }
 
-pub fn get_recent_apps_path() -> PathBuf {
-    return get_cache_dir().join("recent-apps.bin");
+pub fn get_extensions_store_path() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(get_store_dir()?.join("extensions.bin"))
 }
 
-pub fn get_settings_path() -> PathBuf {
-    return get_config_dir().join("settings.bin");
+pub fn get_themes_store_path() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(get_store_dir()?.join("themes.bin"))
 }
 
-pub fn get_api_path() -> PathBuf {
-    return get_tmp_dir().join("api.bin");
-}
-
-pub fn get_extensions_store_path() -> PathBuf {
-    return get_store_dir().join("extensions.bin");
-}
-
-pub fn get_themes_store_path() -> PathBuf {
-    return get_store_dir().join("themes.bin");
+pub fn get_form_path() -> PathBuf {
+    PathBuf::from("/tmp/tigris-form.bin")
 }

@@ -1,5 +1,6 @@
-use std::fs;
+use std::{error::Error, fs, path::PathBuf};
 
+use postcard::{from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
 
 use super::paths::get_settings_path;
@@ -52,7 +53,7 @@ pub struct Settings {
     pub default_search_engine: usize,
 
     #[serde(default = "default_blacklist")]
-    pub blacklist: Vec<String>,
+    pub blacklist: Vec<PathBuf>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -178,11 +179,11 @@ fn default_search_engine() -> usize {
     0
 }
 
-fn default_blacklist() -> Vec<String> {
+fn default_blacklist() -> Vec<PathBuf> {
     vec![]
 }
 
-fn get_default_settings() -> Settings {
+pub fn get_default_settings() -> Settings {
     Settings {
         width: default_width(),
         height: default_height(),
@@ -207,20 +208,23 @@ fn get_default_settings() -> Settings {
 // ===== Methods
 // ===============================================================
 
-pub fn get_settings() -> Settings {
-    let bytes = fs::read(get_settings_path()).unwrap_or(vec![]);
-    let settings = bincode::deserialize(&bytes).unwrap_or(get_default_settings());
-    settings
+pub fn get_settings() -> Result<Settings, Box<dyn Error>> {
+    let bytes = fs::read(get_settings_path()?)?;
+    let settings: Settings = from_bytes(&bytes)?;
+    Ok(settings)
 }
 
-pub fn write_settings(settings: &Settings) {
-    let bytes = bincode::serialize(settings).expect("Error serializing settings");
-    fs::write(get_settings_path(), &bytes).expect("Error writing settings");
+pub fn write_settings(settings: &Settings) -> Result<(), Box<dyn Error>> {
+    let bytes = to_allocvec(settings)?;
+    Ok(fs::write(get_settings_path()?, &bytes)?)
 }
 
 #[cfg(feature = "extension")]
-pub fn get_extension_setting(extension_id: &str, setting_id: &str) -> Result<String, String> {
-    let settings = get_settings();
+pub fn get_extension_setting(
+    extension_id: &str,
+    setting_id: &str,
+) -> Result<String, Box<dyn Error>> {
+    let settings = get_settings()?;
     let extension_values = &settings.extension_values;
 
     for extension_value in extension_values {
@@ -230,23 +234,24 @@ pub fn get_extension_setting(extension_id: &str, setting_id: &str) -> Result<Str
         }
     }
 
-    Err("Could not find setting with given values".to_owned())
+    Err("Could not find setting with given values".into())
 }
 
 #[cfg(feature = "extension")]
-pub fn get_bool_extension_setting(extension_id: &str, setting_id: &str) -> Result<bool, String> {
+pub fn get_bool_extension_setting(
+    extension_id: &str,
+    setting_id: &str,
+) -> Result<bool, Box<dyn Error>> {
     let value = get_extension_setting(extension_id, setting_id)?;
-
     Ok(if value == "true" { true } else { false })
 }
 
 #[cfg(feature = "extension")]
-pub fn get_usize_extension_setting(extension_id: &str, setting_id: &str) -> Result<usize, String> {
+pub fn get_usize_extension_setting(
+    extension_id: &str,
+    setting_id: &str,
+) -> Result<usize, Box<dyn Error>> {
     let value = get_extension_setting(extension_id, setting_id)?;
-
-    if let Ok(number) = value.parse::<usize>() {
-        return Ok(number);
-    }
-
-    Err("Error parsing setting to usize".to_string())
+    let number = value.parse::<usize>()?;
+    Ok(number)
 }
